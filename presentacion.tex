@@ -1,0 +1,279 @@
+\documentclass[spanish]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish, es-ucroman, es-noquoting]{babel}
+\usepackage{amsmath}
+\usepackage{textpos} % Provee entorno textblock
+\usepackage{mathdots} % Provee macro \iddots
+\usepackage{fancyvrb}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Modo handout (comentar para versión presentación en pantalla/proyector)
+% \usepackage{pgfpages}
+% \pgfpagesuselayout{4 on 1}[a4paper, landscape, border shrink=5mm]
+% \setbeamertemplate{background canvas}{
+%     \tikz \draw (current page.north west) rectangle (current page.south east);
+% }
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Quitar controles de navegación
+\usenavigationsymbolstemplate{}
+
+% Numerar las transparencias
+\setbeamertemplate{footline}[frame number]
+
+\title{Programación Funcional}
+\subtitle{
+  Paradigmas de Lenguajes de Programación \\
+  \vspace{2em}
+  Prueba de Oposición \\
+  Ayudantía de Segunda \\
+  Área Teoría
+}
+\author{Leandro Lovisolo \\ \footnotesize{\texttt{<leandro@leandro.me>}}}
+\date{16 de Septiembre de 2015}
+\institute{
+  Departamento de Computación \\
+  Facultad de Ciencias Exactas y Naturales \\
+  Universidad de Buenos Aires
+}
+
+\begin{document}
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Ejercicio}
+  \framesubtitle{Práctica 1, ejercicio 16, parte II)}
+
+  Este ejercicio está basado en un esquema particular de recursión que
+  representa la técnica algorítmica divide and conquer aplicada a problemas de
+  listas. El esquema \texttt{dac}, entonces, tendrá el siguiente tipo e
+  implementación:
+
+  \begin{Verbatim}
+dac :: b -> (a -> b) -> ([a] -> ([a],[a])) ->
+       ([a] -> b -> b -> b) -> [a] -> b
+dac base base1 divide combine []    = base
+dac base base1 divide combine [x]   = base1 x
+dac base base1 divide combine input = combine input
+                                      (rec izquierda)
+                                      (rec derecha)
+  where rec       = dac base base1 divide combine
+        izquierda = fst (divide input)
+        derecha   = snd (divide input)
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Ejercicio}
+  \framesubtitle{Práctica 1, ejercicio 16, parte II)}
+
+  Usar \texttt{dac} para implementar el algoritmo de ordenamiento
+  \textit{merge-sort}. Dicho algoritmo se comporta de la siguiente manera: se
+  divide a la lista a ordernar a la mitad (si es impar, en 2 partes lo más
+  iguales posibles), se ordenan esas partes y luego se fusionan (``merge'') en
+  orden lineal, tomando iterativamente el más chico de las dos cabezas hasta
+  que una lista queda vacía, momento en el cual agrega al final todo lo que
+  queda de la otra y devuelve eso como resultado.
+
+  \vspace{1em}
+
+  \texttt{mergeSort :: Ord a => [a] -> [a]}
+
+  \vspace{1em}
+
+  \textbf{Nota}: para hacer la función auxiliar merge se puede usar recursión
+  explícita.
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Entendiendo el esquema de recursión (I)}
+
+  \begin{Verbatim}
+dac :: b                     -- base (lista vacía)
+    -> (a -> b)              -- base1 (un sólo item)
+    -> ([a] -> ([a],[a]))    -- divide
+    -> ([a] -> b -> b -> b)  -- combine
+    -> [a]                   -- input list
+    -> b                     -- result
+
+dac base base1 divide combine []    = base
+dac base base1 divide combine [x]   = base1 x
+dac base base1 divide combine input = combine input
+                                      (rec izquierda)
+                                      (rec derecha)
+  where rec       = dac base base1 divide combine
+        izquierda = fst (divide input)
+        derecha   = snd (divide input)
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Entendiendo el esquema de recursión (II)}
+
+  Dado que el tipo de nuestra función es el siguiente:
+
+  \vspace{1em}
+
+  \texttt{mergeSort :: Ord a => [a] -> [a]}
+
+  \vspace{1em}
+
+  al aplicarle los parámetros correspondientes, el tipo de la función
+  \texttt{dac} se inferiría de la siguiente manera:
+
+  \begin{Verbatim}
+dac :: Ord a
+    => [a]                         -- base (lista vacía)
+    -> (a -> [a])                  -- base1 (un sólo item)
+    -> ([a] -> ([a],[a]))          -- divide
+    -> ([a] -> [a] -> [a] -> [a])  -- combine
+    -> [a]                         -- input list
+    -> [a]                         -- result
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Casos base}
+
+  Recordemos los casos base del esquema de recursión:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+dac :: Ord a
+    => [a]         -- base (lista vacía)
+    -> (a -> [a])  -- base1 (un sólo item)
+    ...
+dac base base1 divide combine []    = base
+dac base base1 divide combine [x]   = base1 x
+...
+  \end{Verbatim}
+
+  \vspace{1em}
+
+  Lo que queremos es devolver la lista de entrada tal cual cuando el tamaño es
+  menor o igual a 1. Entonces podemos definir los casos base de la siguiente
+  manera:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+base    = []
+base1 x = [x]
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Dividir}
+
+  El siguiente paso es proveer la función que dividie el problema original en
+  dos problemas más pequeños. Recordemos el tipo de nuestra función
+  \texttt{dac}:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+dac :: ...
+    -> ([a] -> ([a],[a]))  -- divide
+    ...
+  \end{Verbatim}
+
+  \vspace{1em}
+
+  Es decir, necesitamos una función que, dada una lista, devuelva dos listas
+  más pequeñas. Podemos usar la función \texttt{splitAt} del preludio para
+  partir la lista original en dos mitades:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+divide xs = splitAt ((length xs) `div` 2) xs
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Conquistar (I)}
+
+  El último paso es la operación \textit{merge} del algoritmo
+  \textit{merge-sort}.
+
+  \vspace{1em}
+
+  Dadas dos listas ordenadas, queremos fusionarlas en una
+  sola lista ordenada con los elementos de ambas (en tiempo lineal.)
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Conquistar (II)}
+
+  Veamos otra vez la definición de \texttt{dac}:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+dac :: ...
+    -> ([a] -> [a] -> [a] -> [a])  -- combine
+    ...
+dac base base1 divide combine input = combine input
+                                      (rec izquierda)
+                                      (rec derecha)
+  where ...
+  \end{Verbatim}
+
+  \vspace{1em}
+
+  Notemos que el esquema de recursión requiere un parámetro \texttt{combine}
+  que toma la lista original y el resultado de las dos llamadas recursivas, y
+  que devuelve el resultado de combinar ambos resultados.
+
+  \vspace{1em}
+
+  En nuestro caso particular no es necesario utilizar la entrada original, por
+  lo tanto la ignoramos.
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Conquistar (III)}
+  Nuestra función \texttt{merge} quedaría definida de la siguiente manera:
+
+  \vspace{1em}
+
+  \begin{Verbatim}
+merge _ [] right = right
+merge _ left [] = left
+merge xs (l:ls) (r:rs)
+  | l <= r    = l:(merge xs ls (r:rs))
+  | otherwise = r:(merge xs (l:ls) rs)
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}[fragile]
+  \frametitle{Componiendo la solución}
+
+  \begin{Verbatim}
+base = []
+
+base1 x = [x]
+
+divide xs = splitAt ((length xs) `div` 2) xs
+
+merge _ [] right = right
+merge _ left [] = left
+merge xs (l:ls) (r:rs)
+  | l <= r    = l:(merge xs ls (r:rs))
+  | otherwise = r:(merge xs (l:ls) rs)
+
+mergeSort :: Ord a => [a] -> [a]
+mergeSort = dac base base1 divide merge
+  \end{Verbatim}
+\end{frame}
+
+\begin{frame}
+  \begin{center}
+    \Huge{¿Preguntas?}
+  \end{center}
+\end{frame}
+\end{document}
+
